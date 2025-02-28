@@ -1,0 +1,53 @@
+import { db } from "@/lib/db"
+import { sql } from "drizzle-orm"
+
+export async function initDatabase() {
+  try {
+    // Test database connection
+    await db.execute(sql`SELECT 1`)
+    console.log("✅ Database connection successful")
+
+    // Create tables if they don't exist
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) NOT NULL UNIQUE,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        symbol VARCHAR(10) NOT NULL,
+        alert_price_above VARCHAR(10),
+        alert_price_below VARCHAR(10),
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, symbol)
+      );
+
+      CREATE TABLE IF NOT EXISTS watchlists (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS watchlist_items (
+        id SERIAL PRIMARY KEY,
+        watchlist_id INTEGER REFERENCES watchlists(id),
+        symbol VARCHAR(10) NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+    console.log("✅ Database tables initialized")
+
+    return true
+  } catch (error) {
+    console.error("❌ Database initialization failed:", error)
+    throw error
+  }
+}
+
